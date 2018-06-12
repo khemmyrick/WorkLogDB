@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 
 """Work Log: Now with Database!
-As of 12:15pm 6/11/18:
+As of 12:34am 6/12/18:
 Search name function seems to work!
 Search task name/notes by search term is working.
 Search date by list is working too!
 Search by date range is working!
 Search by minutes is working!
-Delete function is working!
+Delete function [WAS] working??
+2-directional browsing in view_entry loop enabled!
 
-Next Steps:
-1. Edit function.
+
+Still to do:
+1. Delete and Edit functions.
+Edit function seems to have broken everything.  Or, at least, it's broken my db file, which slows down my manual testing.
+Speaking of which... I have no idea at all how to write python tests that will confirm if the proper things are happening in this db file.
+
 2. Non-peewee tests.
 3. Peewee tests.
 
@@ -75,6 +80,8 @@ def current_lists():
     return staff_list, date_list
 
 
+
+
 def minute_check(minutes):
     try:
         int(minutes)
@@ -87,6 +94,7 @@ def minute_check(minutes):
 
 def delete_entry(entry):
     """Delete an entry."""
+    deleter = entry.get()
     if input('Delete entry. Are you sure? y/N ').lower() == 'y':
         entry.delete_instance()
         print('Entry deleted.')
@@ -96,16 +104,64 @@ def delete_entry(entry):
 
 def edit_entry(entry):
     """Edit an entry."""
+    updater = entry.get()
     # Records can be deleted and edited, letting user change the date, task name, time spent, and/or notes.
-    print("Current task title is " + entry.task_name)
-    new_task = input("Type to update task name, or hit enter to skip.")
-    print('Current notes: \n' + entry.task_notes)
-    new_notes = input("Type to update task notes, or hit enter to skip.")
-    print('Task Minutes: ' + entry.task_minutes)
-    new_minutes = input("Type new integer for minutes, or hit enter to skip.")
-    print('Original Timestamp: ' + entry.timestamp)
-    new_date = input("Type new date MM/DD/YYYY ")
-    pass
+    at_loop = 1
+    while at_loop:
+        print("Current task title is " + entry.task_name)
+        new_task = input("Type to update task name, or hit enter to skip.\n> ")
+        if new_task == '':
+            at_loop -= 1
+        elif re.match(r'\S+', new_task):
+            at_loop -= 1
+        else:
+            input('Invalid task name.  Press enter to try again.')
+
+    am_loop = 1
+    while am_loop:
+        print('Task Minutes: ' + str(entry.task_minutes))
+        new_minutes = input("Type new integer for minutes, or enter to skip.")
+        if new_minutes == '':
+            am_loop -= 1
+        else:
+            legit = minute_check(new_minutes)
+            if legit:
+                am_loop -= 1
+            else:
+                continue
+
+    if input('Edit notes? [y/N]').upper().strip() == "Y":
+        print('Type new notes here. Press "ctrl+d" when finished.')
+        new_notes = sys.stdin.read().strip()
+    else:
+        new_notes = ''
+
+    ts_loop = 1
+    new_dto = ''
+    while ts_loop:
+        print('Original Timestamp: ' + str(entry.timestamp))
+        new_date = input("Type new date in MM/DD/YYYY format. Or enter to skip.")
+        if new_date == '':
+            ts_loop -= 1
+        else:
+            try:
+                new_dto = datetime.datetime.strptime(new_date,
+                                           "%m/%d/%Y")
+            except ValueError:
+                input('Invalid date range. Press enter to retry.')
+            else:
+                ts_loop -= 1
+    if new_task != '':
+        updater.task_name = new_task
+    if new_minutes != '':
+        updater.task_minutes = new_minutes
+    if new_notes != '':
+        updater.task_notes = new_notes
+    if new_dto != '':
+        updater.timestamp = new_dto
+    updater.save()
+    print("Saved succesfully!")
+
 
 
 def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
@@ -125,8 +181,6 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
             entries = entries.where(
                 (Entry.timestamp >= fdate) &
                 (Entry.timestamp <= ldate))
-        elif search_query == 'task_notes':
-            entries = entries.where(Entry.task_notes.contains(search_item))
         elif search_query == 'task_minutes':
             entries = entries.where(
                 (Entry.task_minutes == search_item))
@@ -140,26 +194,52 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
             print('Something happened. "search_query" variable not recognized.')
             input('Press enter to return to menu.')
 
-    if entries:
+    e_list = []
+    for entry in entries:
+        e_list.append("item")
+    if len(e_list) > 0:
+        view_num = 1
         for entry in entries:
+            if entry in view_list.values():
+                continue
+            else:
+                view_list[str(view_num)] = entry
+                view_num += 1
+        view_num = 1
+        while view_num < (len(view_list)+1):
+            # for entry in entries:
             clear_screen()
-            timestamp = entry.timestamp.strftime('%A %B %d, %Y %I:%M%p')
-            print(timestamp)
-            print('='*len(timestamp))
-            print("Recorded by: " + entry.user_name)
-            print("Task: " + entry.task_name)
-            print("Minutes spent on task: " + str(entry.task_minutes))
-            print("Additional Notes: " + entry.task_notes)
-            print('\n\n' + '=' * len(timestamp))
-            print('n) Next entry')
+            vts = view_list[str(view_num)].timestamp.strftime('%A %B %d, %Y %I:%M%p')
+            print(vts)
+            print('='*len(vts))
+            print("Recorded by: " + view_list[str(view_num)].user_name)
+            print("Task: " + view_list[str(view_num)].task_name)
+            print("Minutes: " + str(view_list[str(view_num)].task_minutes))
+            print("Additional Notes: " + view_list[str(view_num)].task_notes)
+            print('\n\n' + '=' * len(vts))
+            print('N) Next entry')
+            print('p) Previous entry')
+            print('e) Edit entry')
             print('d) Delete entry')
             print('q) Return to menu')
 
-            next_action = input('Action: [N/d/q]: ').lower().strip()
+            next_action = input('Action: \n[N/p/e/d/q]: ').lower().strip()
             if next_action == 'q':
                 break
+            elif next_action == 'e':
+                edit_entry(view_list[str(view_num)])
             elif next_action == 'd':
-                delete_entry(entry)
+                delete_entry(view_list[str(view_num)])
+            elif next_action == 'p':
+                if view_num > 1:
+                    view_num -= 1
+                else:
+                    input("Can't go further than that. (Enter to continue.)")
+            else:
+                if view_num < len(view_list):
+                    view_num += 1
+                else:
+                    input("That's all we could find. (Enter to continue.)")
     else:
         print('Sorry. No matching entries found.')
         input('Press enter to return to main menu.')
@@ -449,6 +529,10 @@ staff_list = OrderedDict([
 
 date_list = OrderedDict([
     ('1', '01/01/1901')
+])
+
+view_list = OrderedDict([
+    ('1', 'view_entry')
 ])
 
 
