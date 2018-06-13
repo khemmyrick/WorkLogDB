@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 
 """Work Log: Now with Database!
-As of 12:34am 6/12/18:
-Search name function seems to work!
-Search task name/notes by search term is working.
-Search date by list is working too!
-Search by date range is working!
-Search by minutes is working!
-Delete function [WAS] working??
-2-directional browsing in view_entry loop enabled!
+As of 2:24pm 6/13/18:
+Refactored pretty much EVERYTHING.
+view_entry function wasn't consistently resetting its list of entries,
+which produced strange results after repeat searches.  I think that problem has been fixed.
+Search name function seems to work. (again)
+Search task name/notes by search term is working. (again)
+Search date by list is working.
+Search by date range is working.
+Search by minutes is working.
+Delete function is working.
+2-directional browsing in view_entry loop enabled.
+Edit function working.
+Next Steps:
+1. Start unit testing.
 
+If I were still stuck, I would look into putting user names in a different table from the main table, and somehow connecting the tasks to each user, rather than just listing duplicate identical user names on the one table.  "Joining" of tables would be involved? I will keep this in mind for the future, but I'm days past any willingness to restart from scratch if I don't gotta.
 
-Still to do:
-1. Delete and Edit functions.
-Edit function seems to have broken everything.  Or, at least, it's broken my db file, which slows down my manual testing.
-Speaking of which... I have no idea at all how to write python tests that will confirm if the proper things are happening in this db file.
-
-2. Non-peewee tests.
-3. Peewee tests.
+I'M 2 DAYS PAST MY DUE DATE AND HAVEN'T WRITTEN A SINGLE TEST! FML.
 
 
 """
@@ -27,6 +28,7 @@ import datetime
 import os
 import re
 import sys
+import unittest
 
 from peewee import *
 
@@ -62,24 +64,52 @@ def clear_screen():
 def current_lists():
     entries = Entry.select().order_by(Entry.user_name.desc())
     emp_num = 1
+    staff_list = OrderedDict([
+    ('1', 'placeholder')
+    ])
     for entry in entries:
         if entry.user_name in staff_list.values():
             continue
         else:
             staff_list[str(emp_num)] = entry.user_name
             emp_num += 1
+
     entries = Entry.select().order_by(Entry.timestamp.desc())
     date_iter = 1
+    date_list = OrderedDict([
+    ('1', '01/01/1901')
+    ])
     for entry in entries:
-        if str(entry.timestamp.date()) in date_list.values():
+        if entry.timestamp.date() in date_list.values():
             continue
         else:
-            date_list[str(date_iter)] = str(entry.timestamp.date())
+            date_list[str(date_iter)] = entry.timestamp.date()
             date_iter += 1
 
     return staff_list, date_list
 
 
+def reset_view_list():
+    view_list = OrderedDict([
+    ('1', 'view_entry')
+    ])
+    return view_list
+
+
+def name_check(name):
+    if re.match(r'(\w+ \w+)', name):
+        return True
+    else:
+        input('Please enter first and last name for employee.')
+        return False
+
+
+def task_check(task):
+    if isinstance(task, str):
+        return True
+    else:
+        input('Task name must be string.')
+        return False
 
 
 def minute_check(minutes):
@@ -94,9 +124,12 @@ def minute_check(minutes):
 
 def delete_entry(entry):
     """Delete an entry."""
-    deleter = entry.get()
+    deleter = Entry.get(Entry.user_name==entry.user_name,
+                        Entry.task_name==entry.task_name,
+                        Entry.timestamp==entry.timestamp)
+    print("{}'s entry, {}.".format(entry.user_name, entry.task_name))
     if input('Delete entry. Are you sure? y/N ').lower() == 'y':
-        entry.delete_instance()
+        deleter.delete_instance()
         print('Entry deleted.')
     else:
         pass
@@ -104,63 +137,137 @@ def delete_entry(entry):
 
 def edit_entry(entry):
     """Edit an entry."""
-    updater = entry.get()
-    # Records can be deleted and edited, letting user change the date, task name, time spent, and/or notes.
-    at_loop = 1
-    while at_loop:
-        print("Current task title is " + entry.task_name)
-        new_task = input("Type to update task name, or hit enter to skip.\n> ")
-        if new_task == '':
-            at_loop -= 1
-        elif re.match(r'\S+', new_task):
-            at_loop -= 1
-        else:
-            input('Invalid task name.  Press enter to try again.')
+    updater = Entry.get(Entry.user_name==entry.user_name,
+                        Entry.task_name==entry.task_name,
+                        Entry.timestamp==entry.timestamp)
+    print("{}'s entry, {}.".format(entry.user_name, entry.task_name))
 
-    am_loop = 1
-    while am_loop:
-        print('Task Minutes: ' + str(entry.task_minutes))
-        new_minutes = input("Type new integer for minutes, or enter to skip.")
-        if new_minutes == '':
-            am_loop -= 1
+    entry_adding = 1
+    while entry_adding:
+        new_task = ''
+        new_task = input('Edit task name, or hit enter to skip.\n> ')
+        new_minutes = ''
+        new_minutes = input('Edit integer of minutes, or enter to skip.\n> ')
+        new_date = ''
+        print('Original Timestamp: ' + entry.timestamp.strftime('%m/%d/%Y'))
+        new_date = input("Type new date in MM/DD/YYYY format. Or enter to skip.")
+
+        if isinstance(new_task, str):
+            pass
         else:
-            legit = minute_check(new_minutes)
-            if legit:
-                am_loop -= 1
+            input('Employee name and task name must be strings.')
+            continue
+
+        if new_minutes:
+            if minute_check(new_minutes):
+                pass
             else:
                 continue
 
-    if input('Edit notes? [y/N]').upper().strip() == "Y":
-        print('Type new notes here. Press "ctrl+d" when finished.')
-        new_notes = sys.stdin.read().strip()
-    else:
-        new_notes = ''
-
-    ts_loop = 1
-    new_dto = ''
-    while ts_loop:
-        print('Original Timestamp: ' + str(entry.timestamp))
-        new_date = input("Type new date in MM/DD/YYYY format. Or enter to skip.")
-        if new_date == '':
-            ts_loop -= 1
-        else:
+        if new_date != '':
             try:
                 new_dto = datetime.datetime.strptime(new_date,
                                            "%m/%d/%Y")
             except ValueError:
-                input('Invalid date range. Press enter to retry.')
+                input('Invalid date. Press enter to retry.')
+                continue
+
+        new_notes = ''
+        if input('Any notes? [y/N]').upper().strip() == "Y":
+            print('Type notes here. Press "ctrl+d" when finished.')
+            add_notes = sys.stdin.read().strip()
+    
+        clear_screen()
+        print('Name: ' + entry.user_name)
+        if new_task != '':
+            print('Task: ' + new_task)
+        else:
+            print('Task: ' + entry.task_name)
+        if new_minutes != '':
+            print('Minutes: ' + new_minutes)
+        else:
+            print('Minutes: ' + str(entry.task_minutes))
+        if new_notes:
+            if len(new_notes) > 50:
+                print('Notes: ' + new_notes[:50] + '. . . ')
             else:
-                ts_loop -= 1
-    if new_task != '':
-        updater.task_name = new_task
-    if new_minutes != '':
-        updater.task_minutes = new_minutes
-    if new_notes != '':
-        updater.task_notes = new_notes
-    if new_dto != '':
-        updater.timestamp = new_dto
-    updater.save()
-    print("Saved succesfully!")
+                print('Notes: ' + new_notes)
+
+        if input('Save entry? [Y/n]\n> ') != 'n':
+            if new_task != '':
+                updater.task_name = new_task
+            if new_minutes != '':
+                updater.task_minutes = new_minutes
+            if new_notes != '':
+                updater.task_notes = new_notes
+            if new_dto != '':
+                updater.timestamp = new_dto
+            try:
+                updater.save()
+            except:
+                print('Unexpected Error: ', sys.exc_info())
+                print('Cannot confirm save.')
+                entry_adding -= 1                
+            else:
+                input("Saved succesfully! Hit enter to continue.")
+                entry_adding -= 1
+
+    # End edit entry refactor.
+    # at_loop = 1
+    # while at_loop:
+    #    print("Current task title is " + entry.task_name)
+    #    new_task = input("Update task name, or hit enter to skip.\n> ")
+    #    if new_task == '':
+    #        at_loop -= 1
+    #    elif re.match(r'\S+', new_task):
+    #        at_loop -= 1
+    #    else:
+    #        input('Invalid task name.  Press enter to try again.')
+
+    # am_loop = 1
+    #while am_loop:
+    #    print('Task Minutes: ' + str(entry.task_minutes))
+    #    new_minutes = input("Type new integer for minutes, or enter to skip.")
+    #    if new_minutes == '':
+    #        am_loop -= 1
+    #    else:
+    #        legit = minute_check(new_minutes)
+    #        if legit:
+    #            am_loop -= 1
+    #        else:
+    #            continue
+
+    # if input('Edit notes? [y/N]').upper().strip() == "Y":
+    #    print('Type new notes here. Press "ctrl+d" when finished.')
+    #    new_notes = sys.stdin.read().strip()
+    # else:
+    #    new_notes = ''
+
+    # ts_loop = 1
+    # new_dto = ''
+    # while ts_loop:
+    #    print('Original Timestamp: ' + str(entry.timestamp))
+    #    new_date = input("Type new date in MM/DD/YYYY format. Or enter to skip.")
+    #    if new_date == '':
+    #        ts_loop -= 1
+    #    else:
+    #        try:
+    #            new_dto = datetime.datetime.strptime(new_date,
+    #                                       "%m/%d/%Y")
+    #        except ValueError:
+    #            input('Invalid date. Press enter to retry.')
+    #        else:
+    #            ts_loop -= 1
+    # if new_task != '':
+    #    updater.task_name = new_task
+    # if new_minutes != '':
+    #    updater.task_minutes = new_minutes
+    # if new_notes != '':
+    #    updater.task_notes = new_notes
+    # if new_dto != '':
+    #    updater.timestamp = new_dto
+    # updater.save()
+    # print("Saved succesfully!")
 
 
 
@@ -170,13 +277,19 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
 
     if search_query:
         if search_query == 'user_name':
-            entries = entries.where(Entry.user_name.contains(search_item))
+            entries = entries.where((Entry.user_name == search_item))
         elif search_query == 'task_term':
             entries = entries.where(
                 Entry.task_name.contains(search_item) |
                 Entry.task_notes.contains(search_item))
         elif search_query == 'date':
-            entries = entries.where(Entry.timestamp.contains(search_item))
+            # entries = entries.where(Entry.timestamp.contains(search_item))
+            # begin date refactor
+            entries = entries.where(
+                (Entry.timestamp.year == search_item.year) &
+                (Entry.timestamp.month == search_item.month) &
+                (Entry.timestamp.day == search_item.day))
+            # end date refactor
         elif search_query == 'date_range':
             entries = entries.where(
                 (Entry.timestamp >= fdate) &
@@ -194,10 +307,14 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
             print('Something happened. "search_query" variable not recognized.')
             input('Press enter to return to menu.')
 
-    e_list = []
-    for entry in entries:
-        e_list.append("item")
-    if len(e_list) > 0:
+    available_entries = []
+    # refactor of e_list
+    available_entries = list(entries)
+    # end refactor
+    #for entry in entries:
+    #    e_list.append("item")
+    view_list = reset_view_list()
+    if len(available_entries) > 0:
         view_num = 1
         for entry in entries:
             if entry in view_list.values():
@@ -207,7 +324,6 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
                 view_num += 1
         view_num = 1
         while view_num < (len(view_list)+1):
-            # for entry in entries:
             clear_screen()
             vts = view_list[str(view_num)].timestamp.strftime('%A %B %d, %Y %I:%M%p')
             print(vts)
@@ -228,8 +344,10 @@ def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
                 break
             elif next_action == 'e':
                 edit_entry(view_list[str(view_num)])
+                break
             elif next_action == 'd':
                 delete_entry(view_list[str(view_num)])
+                break
             elif next_action == 'p':
                 if view_num > 1:
                     view_num -= 1
@@ -249,6 +367,7 @@ def search_staff():
     """Seach by employee."""
     ss_choice = input('Search by name or see list? [n/L] \n>')
     target = ""
+    staff_list, date_list = current_lists()
     if ss_choice.lower().strip() == 'n':
         spec_name = 1
         while spec_name:
@@ -347,11 +466,11 @@ So, if you want to search New Year's Day 2018, type "01/01/2018-01/02/2018"
                    ldate=last_date)
     else:
         clear_screen()
-
+        staff_list, date_list = current_lists()
         date_pick = 1
         while date_pick:
             for key, value in date_list.items():
-                print(key + ") " + value)
+                print(key + ") " + str(value))
 
             date_choice = input('Please choose a number from the list.\n> ')
             if date_choice in date_list.keys():
@@ -430,60 +549,113 @@ def search_entries():
 
 def add_entry():
     """Add new entry to work log."""
-    # Use unittest instead of doctest to avoid breaking KL-style menu?
     clear_screen()
-    # As a user of the script, if I choose to enter a new work log, no entry fields (except notes) may remain blank.
-    an_loop = 1
-    while an_loop:
+
+    # Begin refactored add_entry()
+    entry_adding = 1
+    while entry_adding:
+
         add_name = input('Please enter full name.\n> ')
-        if re.match(r'(\w+ \w+)', add_name):
-            an_loop -= 1
-        else:
-            input('Invalid entry.  Press enter to retry.')
-
-    at_loop = 1
-    while at_loop:
         add_task = input('What task did you work on?\n> ')
-        if re.match(r'\S+', add_task):
-            at_loop -= 1
-        else:
-            input('Invalid task name.  Press enter to try again.')
+        add_minutes = input('How many minutes were spent?\n> ')
 
-    am_loop = 1
-    while am_loop:
-        add_minutes = input('How many minutes did you spend on this task?\n> ')
-        legit = minute_check(add_minutes)
-        if legit:
-            am_loop -= 1
+        if name_check(add_name):
+            pass
         else:
             continue
 
-    add_notes = ''
-    if input('Any notes? [y/N]').upper().strip() == "Y":
-        print('Type notes here. Press "ctrl+d" when finished.\n> ')
-        add_notes = sys.stdin.read().strip()
-
-    clear_screen()
-    print('Name: ' + add_name)
-    print('Task: ' + add_task)
-    print('Minutes: ' + add_minutes)
-    if add_notes:
-        if len(add_notes) > 50:
-            print('Notes: ' + add_notes[:50] + '. . . ')
+        if isinstance(add_name + add_task, str):
+            pass
         else:
-            print('Notes: ' + add_notes)
+            input('Employee name and task name must be strings.')
+            continue
 
-    add_ts = datetime.datetime.now()
-    ats_string = add_ts.strftime('%A %B %d, %Y %I:%M%p')
-    print(ats_string)
-    print('-' * len(ats_string))
-    if input('Save entry? [Y/n]\n> ') != 'n':
-        Entry.create(user_name=add_name,
-                     task_name=add_task,
-                     task_minutes=add_minutes,
-                     task_notes=add_notes,
-                     timestamp=add_ts)
-        print("Saved succesfully!")
+        if minute_check(add_minutes):
+            pass
+        else:
+            continue
+
+        add_notes = ''
+        if input('Any notes? [y/N]').upper().strip() == "Y":
+            print('Type notes here. Press "ctrl+d" when finished.')
+            add_notes = sys.stdin.read().strip()
+    
+        clear_screen()
+        print('Name: ' + add_name)
+        print('Task: ' + add_task)
+        print('Minutes: ' + add_minutes)
+        if add_notes:
+            if len(add_notes) > 50:
+                print('Notes: ' + add_notes[:50] + '. . . ')
+            else:
+                print('Notes: ' + add_notes)
+        if input('Save entry? [Y/n]\n> ') != 'n':
+            try:
+                Entry.create(user_name=add_name,
+                             task_name=add_task,
+                             task_minutes=add_minutes,
+                             task_notes=add_notes,
+                             timestamp=datetime.datetime.now())
+            except:
+                print('Unexpected Error: ', sys.exc_info())
+                print('Unable to save.')
+                entry_adding -= 1
+            else:
+                input('Entry should be added!')
+                entry_adding -= 1
+
+    # End refactored add_entry
+    # an_loop = 1
+    # while an_loop:
+    #    add_name = input('Please enter full name.\n> ')
+    #    if re.match(r'(\w+ \w+)', add_name):
+    #        an_loop -= 1
+    #    else:
+    #        input('Invalid entry.  Press enter to retry.')
+
+    # at_loop = 1
+    # while at_loop:
+    #    add_task = input('What task did you work on?\n> ')
+    #    if re.match(r'\S+', add_task):
+    #        at_loop -= 1
+    #    else:
+    #        input('Invalid task name.  Press enter to try again.')
+
+    # am_loop = 1
+    # while am_loop:
+    #    add_minutes = input('How many minutes did you spend on this task?\n> ')
+    #    legit = minute_check(add_minutes)
+    #    if legit:
+    #        am_loop -= 1
+    #    else:
+    #        continue
+
+    # add_notes = ''
+    # if input('Any notes? [y/N]').upper().strip() == "Y":
+    #    print('Type notes here. Press "ctrl+d" when finished.\n> ')
+    #    add_notes = sys.stdin.read().strip()
+
+    # clear_screen()
+    # print('Name: ' + add_name)
+    # print('Task: ' + add_task)
+    # print('Minutes: ' + add_minutes)
+    # if add_notes:
+    #    if len(add_notes) > 50:
+    #        print('Notes: ' + add_notes[:50] + '. . . ')
+    #    else:
+    #        print('Notes: ' + add_notes)
+
+    # add_ts = datetime.datetime.now()
+    # ats_string = add_ts.strftime('%A %B %d, %Y %I:%M%p')
+    # print(ats_string)
+    # print('-' * len(ats_string))
+    # if input('Save entry? [Y/n]\n> ') != 'n':
+    #    Entry.create(user_name=add_name,
+    #                 task_name=add_task,
+    #                 task_minutes=add_minutes,
+    #                 task_notes=add_notes,
+    #                 timestamp=add_ts)
+    #    print("Saved succesfully!")
 
 
 def main_menu():
