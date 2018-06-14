@@ -16,10 +16,6 @@ Edit function working.
 Next Steps:
 1. Start unit testing.
 
-If I were still stuck, I would look into putting user names in a different table from the main table, and somehow connecting the tasks to each user, rather than just listing duplicate identical user names on the one table.  "Joining" of tables would be involved? I will keep this in mind for the future, but I'm days past any willingness to restart from scratch if I don't gotta.
-
-I'M 2 DAYS PAST MY DUE DATE AND HAVEN'T WRITTEN A SINGLE TEST! FML.
-
 
 """
 
