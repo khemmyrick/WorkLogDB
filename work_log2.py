@@ -1,21 +1,11 @@
 #!/usr/bin/env python3
 
 """Work Log: Now with Database!
+view_entry() function now broken up into viewentry() and entry_scrape() functions.
 Next Steps:
 0. Refactor Add / Edit Entry so users enter all information in 1 text box, ie the task_notes entry mode.  Have users press "enter" between each thing and split resulting string into list.  To reduce total number of inputs?
-1. Start unit testing.
-Steps taken as of 6/24/18:
-    a] Figure out HOW to unittest inputs...
-    b] Find out how to write various assert methods needed to test methods/functions in this project.
-    c] Figure out which mocks are needed, to test inputs, function calls, etc etc
-    d] Begin rewriting entire program from scratch, based on what tests I can figure out how to write.
-    e] Preview an example of how someone else completed this assignment....
-    Realization @ 6pm on 6/24/18:
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ????!!!!!!! Do I only need assertTrue/False tests !!!!!!??????
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-2. START UNIT TESTING?
-As of 6/25/18 @ 10:40am... I have 11 tests that run in 8.5 seconds.
+1. Continue unit testing.
+As of 6/26/18 @ 9:40pm... I have 19 tests that run in about 11 seconds.
 Next steps:
 Test, refactor, test, repeat.
 
@@ -58,6 +48,7 @@ def clear_screen():
 
 def current_lists():
     """Prepare lists for date and name searches."""
+    # Under test.
     entries = Entry.select().order_by(Entry.user_name.desc())
     emp_num = 1
     staff_list = OrderedDict([
@@ -86,6 +77,7 @@ def current_lists():
 
 
 def reset_view_list():
+    # Under test.
     view_list = OrderedDict([
     ('1', 'view_entry')
     ])
@@ -93,6 +85,7 @@ def reset_view_list():
 
 
 def name_check(name):
+    # Under test.
     if re.match(r'(\w+ \w+)', name):
         return True
     else:
@@ -101,6 +94,7 @@ def name_check(name):
 
 
 def task_check(task):
+    # Under test.
     if isinstance(task, str):
         return True
     else:
@@ -109,6 +103,7 @@ def task_check(task):
 
 
 def minute_check(minutes):
+    # Under test.
     try:
         int(minutes)
     except ValueError:
@@ -120,6 +115,7 @@ def minute_check(minutes):
 
 def delete_entry(entry):
     """Delete an entry."""
+    # Under test.
     try:
         deleter = Entry.get(Entry.user_name==entry.user_name,
                             Entry.task_name==entry.task_name,
@@ -129,8 +125,6 @@ def delete_entry(entry):
         return True
     except DoesNotExist:
         return False
-    
-    
 
 
 def edit_entry(entry):
@@ -209,96 +203,102 @@ def edit_entry(entry):
             entry_adding -= 1
 
 
+def entry_scrape(entries, search_query=None,
+             search_item=None,
+             fdate=None,
+             ldate=None):
+    # Under test.
+    if search_query == 'user_name':
+        entries = entries.where((Entry.user_name == search_item))
+    elif search_query == 'task_term':
+        entries = entries.where(
+            Entry.task_name.contains(search_item) |
+            Entry.task_notes.contains(search_item))
+    elif search_query == 'date':
+        # entries = entries.where(Entry.timestamp.contains(search_item))
+        # begin date refactor
+        entries = entries.where(
+            (Entry.timestamp.year == search_item.year) &
+            (Entry.timestamp.month == search_item.month) &
+            (Entry.timestamp.day == search_item.day))
+        # end date refactor
+    elif search_query == 'date_range':
+        entries = entries.where(
+            (Entry.timestamp >= fdate) &
+            (Entry.timestamp <= ldate))
+    elif search_query == 'task_minutes':
+        entries = entries.where(
+            (Entry.task_minutes == search_item))
+    else:
+        print('Something happened. "search_query" variable not recognized.')
+        return False
+        
+    return entries
+
+
 def view_entry(search_query=None, search_item=None, fdate=None, ldate=None):
     """View entries."""
     entries = Entry.select().order_by(Entry.timestamp.desc())
-
     if search_query:
-        if search_query == 'user_name':
-            entries = entries.where((Entry.user_name == search_item))
-        elif search_query == 'task_term':
-            entries = entries.where(
-                Entry.task_name.contains(search_item) |
-                Entry.task_notes.contains(search_item))
-        elif search_query == 'date':
-            # entries = entries.where(Entry.timestamp.contains(search_item))
-            # begin date refactor
-            entries = entries.where(
-                (Entry.timestamp.year == search_item.year) &
-                (Entry.timestamp.month == search_item.month) &
-                (Entry.timestamp.day == search_item.day))
-            # end date refactor
-        elif search_query == 'date_range':
-            entries = entries.where(
-                (Entry.timestamp >= fdate) &
-                (Entry.timestamp <= ldate))
-        elif search_query == 'task_minutes':
-            entries = entries.where(
-                (Entry.task_minutes == search_item))
-        elif search_query == 'task_minutes_more':
-            entries = entries.where(
-                (Entry.task_minutes >= search_item))
-        elif search_query == 'task_minutes_less':
-            entries = entries.where(
-                (Entry.task_minutes <= search_item))
-        else:
-            print('Something happened. "search_query" variable not recognized.')
-            input('Press enter to return to menu.')
+        entries = entry_scrape(entries, search_query=search_query,
+                               search_item=search_item,
+                               fdate=fdate,
+                               ldate=ldate)
 
     available_entries = []
     # refactor of e_list
     available_entries = list(entries)
-    # end refactor
-    #for entry in entries:
-    #    e_list.append("item")
-    view_list = reset_view_list()
-    if len(available_entries) > 0:
-        view_num = 1
-        for entry in entries:
-            if entry in view_list.values():
-                continue
-            else:
-                view_list[str(view_num)] = entry
-                view_num += 1
-        view_num = 1
-        while view_num < (len(view_list)+1):
-            clear_screen()
-            vts = view_list[str(view_num)].timestamp.strftime('%A %B %d, %Y %I:%M%p')
-            print(vts)
-            print('='*len(vts))
-            print("Recorded by: " + view_list[str(view_num)].user_name)
-            print("Task: " + view_list[str(view_num)].task_name)
-            print("Minutes: " + str(view_list[str(view_num)].task_minutes))
-            print("Additional Notes: " + view_list[str(view_num)].task_notes)
-            print('\n\n' + '=' * len(vts))
-            print('N) Next entry')
-            print('p) Previous entry')
-            print('e) Edit entry')
-            print('d) Delete entry')
-            print('q) Return to menu')
-
-            next_action = input('Action: \n[N/p/e/d/q]: ').lower().strip()
-            if next_action == 'q':
-                break
-            elif next_action == 'e':
-                edit_entry(view_list[str(view_num)])
-                break
-            elif next_action == 'd':
-                if input('Delete entry. Are you sure? y/N ').lower() == 'y':
-                    delete_entry(view_list[str(view_num)])
-                    break
+    if entries:
+        view_list = reset_view_list()
+        if len(available_entries) > 0:
+            view_num = 1
+            for entry in entries:
+                if entry in view_list.values():
+                    continue
                 else:
-                    view_num += 0
-            elif next_action == 'p':
-                if view_num > 1:
-                    view_num -= 1
-                else:
-                    input("Can't go further than that. (Enter to continue.)")
-            else:
-                if view_num < len(view_list):
+                    view_list[str(view_num)] = entry
                     view_num += 1
+            view_num = 1
+            while view_num < (len(view_list)+1):
+                clear_screen()
+                vts = view_list[str(view_num)].timestamp.strftime(
+                    '%A %B %d, %Y %I:%M%p'
+                )
+                print(vts)
+                print('='*len(vts))
+                print("Recorded by: " + view_list[str(view_num)].user_name)
+                print("Task: " + view_list[str(view_num)].task_name)
+                print("Minutes: " + str(view_list[str(view_num)].task_minutes))
+                print("Additional Notes: " + view_list[str(view_num)].task_notes)
+                print('\n\n' + '=' * len(vts))
+                print('N) Next entry')
+                print('p) Previous entry')
+                print('e) Edit entry')
+                print('d) Delete entry')
+                print('q) Return to menu')
+    
+                next_action = input('Action: \n[N/p/e/d/q]: ').lower().strip()
+                if next_action == 'q':
+                    break
+                elif next_action == 'e':
+                    edit_entry(view_list[str(view_num)])
+                    break
+                elif next_action == 'd':
+                    if input('Delete entry. Are you sure? y/N ').lower() == 'y':
+                        delete_entry(view_list[str(view_num)])
+                        break
+                    else:
+                        view_num += 0
+                elif next_action == 'p':
+                    if view_num > 1:
+                        view_num -= 1
+                    else:
+                        input("Can't go further than that. (Enter to continue.)")
                 else:
-                    input("That's all we could find. (Enter to continue.)")
+                    if view_num < len(view_list):
+                        view_num += 1
+                    else:
+                        input("That's all we could find. (Enter to continue.)")
     else:
         print('Sorry. No matching entries found.')
         input('Press enter to return to main menu.')
@@ -433,16 +433,8 @@ def search_minutes():
         target = input("Please type a number of minutes.\n> ")
         if target != '':
             if re.match(r'\d+', target):
-                # if re.search(r'\-', target):
-                #    view_entry(search_query='task_minutes_less',
-                #               search_item=target)
-                # elif re.search(r'\+', target):
-                #    view_entry(search_query='task_minutes_more',
-                #                search_item=target)
                 view_entry(search_query='task_minutes',
                            search_item=int(target))
-                    # ValueError: invalid literal for int() with base 10: '%5%'
-                    # '5 was the number i attempted.
                 break
             else:
                 print('Invalid entry. Please enter only integers.')
@@ -489,6 +481,7 @@ def search_entries():
 
 
 def save_new(user_name, task_name, task_minutes, task_notes):
+    # Under test.
     try:
         Entry.create(user_name=user_name,
                      task_name=task_name,
@@ -504,6 +497,7 @@ def save_new(user_name, task_name, task_minutes, task_notes):
 
 
 def save_existing(update_me):
+    # Under test.
     try:
         update_me.save()
         return True
