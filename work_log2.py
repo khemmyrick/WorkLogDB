@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 
-"""Work Log: Now with Database!
+"""Work Log with Database.
 view_entry() function now broken up into viewentry() and entry_scrape() functions.
-Next Steps:
-0. Refactor Add / Edit Entry so users enter all information in 1 text box, ie the task_notes entry mode.  Have users press "enter" between each thing and split resulting string into list.  To reduce total number of inputs?
-1. Continue unit testing.
-As of 6/26/18 @ 9:40pm... I have 19 tests that run in about 11 seconds.
+
+As of 6/27/18 @ 9:40am... I have 19 tests that run in 11ish seconds.
+
+Entry class is now imported from a seperate models.py file, which should shave about 10 lines off of this file.
+Coverage is at 11% and misses lines including current_lists() that definitely run and return output under test????
+
+Should user elements of project be in seperate module?
+
+Can I think of the primary module as a class object, that contains the current version of the db?
+Attributes of my wl module would include lists corresponding to the employee names and task dates, as well as a list of all entries in total.
+
 Next steps:
 Test, refactor, test, repeat.
 
@@ -19,20 +26,21 @@ import sys
 import unittest
 
 from peewee import *
+from models import Entry
+# import wlfe
 
 db = SqliteDatabase('log.db')
 
 
-class Entry(Model):
-    timestamp = DateTimeField(default=datetime.datetime.now)
-    user_name = CharField(max_length=500)
-    task_name = CharField(max_length=1000)
-    task_minutes = IntegerField(default=0)
-    task_notes = TextField()
+# class Entry(Model):
+#    timestamp = DateTimeField(default=datetime.datetime.now)
+#    user_name = CharField(max_length=500)
+#    task_name = CharField(max_length=1000)
+#    task_minutes = IntegerField(default=0)
+#    task_notes = TextField()
 
-    class Meta:
-        """Tell entry what database it belongs to?"""
-        database = db
+#    class Meta:
+#        database = db
 
 
 def initialize():
