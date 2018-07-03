@@ -1,7 +1,6 @@
 """Work Log DB.
 Return True, False, Item or None.
-Every function returns something.
-Every 'block' is 1 function."""
+Every function should return something."""
 
 
 from collections import OrderedDict
@@ -20,8 +19,10 @@ from models import Entry
 class CardCatalog:
     """For viewing, sorting and editing worklog database."""
     title = 'Welcome to the Library of Employee Productivity!'
-    ent_by_name = Entry.select().order_by(Entry.user_name.desc())
+    ent_from_db = Entry.select()
     ent_by_timestamp = Entry.select().order_by(Entry.timestamp.desc())
+    ent_by_taskname = Entry.select().order_by(Entry.task_name.desc())
+    ent_by_minutes = Entry.select().order_by(Entry.task_minutes.desc())
     roster = []
     datelog = []
     ent_browse = []
@@ -33,12 +34,28 @@ class CardCatalog:
                 'task_notes': ''}
     # target_entry
 
-    def load_entries(self):
+    def load_entries(self, bycat=None, target=None):
         # Under test.
         # Not sure how to test for it NOT working?
         self.ent_browse = []
-        self.ent_by_timestamp = Entry.select().order_by(Entry.timestamp.desc())
-        for entry in self.ent_by_timestamp:
+        if bycat == 'minutes':
+            self.ent_from_db = Entry.select().where(
+                (Entry.task_minutes == target)).order_by(
+                Entry.task_minutes.desc())
+        elif bycat == 'term':
+            self.ent_from_db = Entry.select().where(
+                Entry.task_name.contains(target) |
+                Entry.task_notes.contains(target)).order_by(
+                Entry.task_name.desc())
+        elif bycat == 'name':
+            self.ent_from_db = Entry.select().where(
+                Entry.user_name.contains(target)).order_by(
+                Entry.user_name.desc())
+            # CharField is NOT case sensitive?
+        else:
+            self.ent_from_db = Entry.select().order_by(Entry.timestamp.desc())
+
+        for entry in self.ent_from_db:
             self.new_dict = {'user_name': entry.user_name,
                              'task_name': entry.task_name,
                              'task_minutes': entry.task_minutes,
@@ -70,11 +87,13 @@ class CardCatalog:
 
     def generate_roster(self):
         # This code is returning individual LETTERS rather than strings for some reason??
-        self.ent_by_name = Entry.select().order_by(Entry.user_name.desc())
-        for entry in self.ent_by_name:
-            self.roster += entry.user_name
+        self.roster = []
+        self.ent_from_db = Entry.select().order_by(Entry.user_name.desc())
+        for entry in self.ent_from_db:
+            self.roster.append(entry.user_name)
         set_list = set(self.roster)
         self.roster = list(set_list)
+        print(self.roster)
         return self.roster
 
     def generate_datelog(self):

@@ -145,31 +145,62 @@ def edit_entry(entry):
 
 
 def by_staff():
-    input('Search by staff')
+    """Search by staff names."""
+    if input('''
+Please choose:
+[L] A list of empltoyees.
+[n] To type in a specific name.
+> ''').lower() == 'n':
+        namestr = input('Please type a full or partial employee name.')
+        view_entries(bycat='name', target=namestr)
+        return
+    else:
+        roster = CardCatalog().generate_roster()
+        r_num = 0
+        for user in roster:
+            print('{}: {}'.format(r_num, user))
+            print('-' * 50)
+            r_num += 1
+        employee = input("Please type a number to select an employee. \n> ")
+        view_entries(bycat='name', target=roster[int(employee)])
+        clear_screen()
+        return
 
 
 def by_date():
-    input('Search by date')
+    """Search by date."""
+    pass
+    # input('Search by date')
 
 
 def by_minutes():
-    input('Search by minutes')
-
+    """Search by minutes spent on task."""
+    minloop = 1
+    while minloop:
+        minnum = input('Please type an integer of minutes.')
+        if CardCatalog().minute_check(minnum):
+            view_entries(bycat='minutes', target=minnum)
+            return
+        else:
+            input('Invalid input.  Press enter to continue.')
+            clear_screen()
 
 def by_term():
-    input('Search by term')
+    """Search by term."""
+    termstr = input('Please enter search term.')
+    view_entries(bycat='term', target=termstr)
+    return
 
 
-def view_entries():
+def view_entries(bycat=None, target=None):
     """View entries."""
-    viewer = CardCatalog().load_entries()
+    viewer = CardCatalog().load_entries(bycat=bycat, target=target)
     view = len(viewer)
-    view_num = 1
-    while view_num < view + 1:
+    view_num = 0
+    while view_num < view:
         clear_screen()
-        vts = viewer[view_num]['timestamp'].strftime(
-            '%A %B %d, %Y %I:%M%p'
-        )
+        vts = viewer[view_num]['timestamp'].strftime('%A %B %d') # list index out of range on items that happen once?
+        # Specifically at this line?
         print(vts)
         print('='*len(vts))
         print("Recorded by: " + viewer[view_num]['user_name'])
@@ -197,7 +228,7 @@ def view_entries():
             else:
                 view_num += 0
         elif next_action == 'p':
-            if view_num > 1:
+            if view_num > 0:
                 view_num -= 1
             else:
                 input("Can't go further than that. (Enter to continue.)")
@@ -206,6 +237,7 @@ def view_entries():
                 view_num += 1
             else:
                 input("That's all we could find. (Enter to continue.)")
+
 
 def search_entries():
     """Search existing entries.""" 

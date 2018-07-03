@@ -86,6 +86,10 @@ class FunctionTests(unittest.TestCase):
     def test_load_entries(self):
         self.assertTrue(CardCatalog().load_entries())
 
+    def test_load_entries_bymin(self):
+        self.assertTrue(CardCatalog().load_entries(
+                bycat='minutes', target=1200))
+
     def test_delete_entry(self):
         tde = CardCatalog().delete_entry({'user_name': 'White Diamond',
                             'task_name': 'Unknown',
