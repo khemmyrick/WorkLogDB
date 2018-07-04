@@ -1,11 +1,8 @@
 """Work Log DB.
-Return True, False, Item or None.
-Every function should return something."""
+"""
 
 
-from collections import OrderedDict
 import datetime
-import os
 import re
 import sys
 
@@ -34,7 +31,7 @@ class CardCatalog:
                 'task_notes': ''}
     # target_entry
 
-    def load_entries(self, bycat=None, target=None):
+    def load_entries(self, bycat=None, target=None, datelast=None):
         # Under test.
         # Not sure how to test for it NOT working?
         self.ent_browse = []
@@ -52,6 +49,16 @@ class CardCatalog:
                 Entry.user_name.contains(target)).order_by(
                 Entry.user_name.desc())
             # CharField is NOT case sensitive?
+        elif datelast:
+            self.ent_from_db = Entry.select().where(
+                (Entry.timestamp >= target) &
+                (Entry.timestamp <= datelast)).order_by(
+                Entry.timestamp.desc())
+        elif bycat == 'date':
+            self.ent_from_db = Entry.select().where(
+                (Entry.timestamp.year == target.year) &
+                (Entry.timestamp.month == target.month) &
+                (Entry.timestamp.day == target.day))
         else:
             self.ent_from_db = Entry.select().order_by(Entry.timestamp.desc())
 
@@ -68,44 +75,58 @@ class CardCatalog:
         """Delete an entry."""
         # Under test!
         try:
-            deleter = Entry.get(Entry.user_name==entry['user_name'],
-                                Entry.task_name==entry['task_name'],
-                                Entry.task_minutes==entry['task_minutes'],
-                                Entry.timestamp==entry['timestamp'])
+            deleter = Entry.get(
+                Entry.user_name == entry['user_name'],
+                Entry.task_name == entry['task_name'],
+                Entry.task_minutes == entry['task_minutes'],
+                Entry.timestamp == entry['timestamp']
+            )
             deleter.delete_instance()
             print('Entry deleted.')
             return True
         except DoesNotExist:
             return False
 
-    def generate_blank_entry(self):
-        self.new_dict = {'user_name': 'John Doe',
-                    'task_name': 'Work Task',
-                    'task_minutes': 1,
-                    'task_notes': ''}
-        return self.new_dict
-
     def generate_roster(self):
-        # This code is returning individual LETTERS rather than strings for some reason??
+        """Return a list of staff with worklog entries."""
+        # Under test.
         self.roster = []
         self.ent_from_db = Entry.select().order_by(Entry.user_name.desc())
         for entry in self.ent_from_db:
             self.roster.append(entry.user_name)
         set_list = set(self.roster)
         self.roster = list(set_list)
-        print(self.roster)
         return self.roster
 
     def generate_datelog(self):
-        # Like gen_roster, this code is trying to iterate character by character through individual dates
-        # instead of adding each date to the list as intended. 
-        for entry in self.ent_by_timestamp:
-            self.datelog += entry.timestamp.date()
+        """Return a list of task dates for easy selection."""
+        # Under test.
+        self.datelog = []
+        self.ent_from_db = Entry.select().order_by(Entry.timestamp.desc())
+        for entry in self.ent_from_db:
+            self.datelog.append(entry.timestamp.date())
         set_list = set(self.datelog)
         self.datelog = list(set_list)
         return self.datelog
-    
-    def save_new(self, user_name, task_name, task_minutes, task_notes):
+
+    def date_check(self, phoenix):
+        """Create a datetime object from a string. Or return False."""
+        # Under Test
+        try:
+            day_in_q = datetime.datetime.strptime(
+                phoenix,
+                "%m/%d/%Y"
+            )
+        except ValueError:
+            return False
+        else:
+            return day_in_q
+
+    def save_new(self,
+                 user_name,
+                 task_name,
+                 task_minutes,
+                 task_notes):
         """Save a new entry."""
         # Under test.
         try:
@@ -131,7 +152,8 @@ class CardCatalog:
             return False
 
     def minute_check(self, minutes):
-    # Under test.
+        """Returns True if string can be parsed as integer."""
+        # Under test.
         try:
             int(minutes)
         except ValueError:
@@ -149,11 +171,14 @@ class CardCatalog:
             return 'Notes: ' + notes
 
     def acquire_target(self, entry):
+        """Return entry from database for editing."""
         try:
-            output = Entry.get(Entry.user_name==entry['user_name'],
-                               Entry.task_name==entry['task_name'],
-                               Entry.task_minutes==entry['task_minutes'],
-                               Entry.timestamp==entry['timestamp'])
+            output = Entry.get(
+                Entry.user_name == entry['user_name'],
+                Entry.task_name == entry['task_name'],
+                Entry.task_minutes == entry['task_minutes'],
+                Entry.timestamp == entry['timestamp']
+            )
         except (DoesNotExist, StopIteration):
             # Under test.  Sort of.
             # These may not be the correct exceptions?
@@ -171,11 +196,3 @@ class CardCatalog:
             print('Unexpected Error: ', sys.exc_info())
             print('Cannot confirm save.')
             return False
-
-#    def start(self):
-#        wlux.main_menu()
-        
-
-# if __name__ == '__main__':
-#    libra = CardCatalog()
-#    libra.start()
