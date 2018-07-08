@@ -181,10 +181,20 @@ Please choose:
             print('{}: {}'.format(r_num, user))
             print('-' * 50)
             r_num += 1
-        employee = input("Please type a number to select an employee. \n> ")
-        view_entries(bycat='name', target=roster[int(employee)])
-        clear_screen()
-        return
+        list_loop = 1
+        while list_loop:
+            employee = input(
+                "Please type a number to select an employee. \n> "
+            )
+            if CardCatalog().minute_check(employee):
+                if int(employee) < len(roster) and int(employee) >= 0:
+                    view_entries(
+                        bycat='name',
+                        target=roster[int(employee)]
+                    )
+                    clear_screen()
+                    return
+            invalid_input('integer')
 
 
 def by_date():
@@ -234,6 +244,7 @@ So, if you want to search New Year's Day 2018, type "01/01/2018-01/02/2018"
 
 def by_minutes():
     """Search by minutes spent on task."""
+    # Under test.
     minloop = 1
     while minloop:
         minnum = input('Please type an integer of minutes.')
@@ -247,6 +258,7 @@ def by_minutes():
 
 def by_term():
     """Search by term."""
+    # Under test.
     termstr = input('Please enter search term.')
     view_entries(bycat='term', target=termstr)
     return

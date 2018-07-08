@@ -163,20 +163,51 @@ class FunctionTests(unittest.TestCase):
 
 class UserInterfaceTests(unittest.TestCase):
     def test_invalid_input(self):
-        with unittest.mock.patch('builtins.input', return_value='Y'):
+        with unittest.mock.patch('builtins.input', return_value=''):
             self.assertIsNone(wlui.invalid_input('wanted'))
 
     def test_press_enter(self):
-        with unittest.mock.patch('builtins.input', return_value='Y'):
-            self.assertIsNone(wlui.invalid_input('wanted'))
+        with unittest.mock.patch('builtins.input', return_value=''):
+            self.assertIsNone(wlui.press_enter())
 
-    
-    # def test_by_term(self):
-    #    Test search task names/notes. 
-    #    with unittest.mock.patch('wlui.view_entries', return_value='Y'):
-    #        # Test termstr will be above context container.
-    #        # NEED PATTERN FOR MOCKING FUNCTION CALL TEST.
-    #        # ????.assert_called(???)
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_term(self, mock_ve):
+        """Test search task names/notes."""
+        with unittest.mock.patch('builtins.input', return_value='Y'):
+            wlui.by_term()
+            mock_ve.assert_called_with(bycat='term', target='Y')
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_minutes_good(self, mock_ve):
+        """Test search by minutes with a valid integer."""
+        with unittest.mock.patch('builtins.input', return_value='3'):
+            wlui.by_minutes()
+            mock_ve.assert_called_with(bycat='minutes', target='3')
+
+    @unittest.mock.patch('wlui.invalid_input', return_value='True')
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_minutes_bad_then_good(self, mock_ve, mock_ii):
+        """Test search by minutes with a valid integer."""
+        with unittest.mock.patch('builtins.input', side_effect=['two', '2']):
+            wlui.by_minutes()
+            mock_ii.assert_called_with('integer')
+            # Bad arg calls invalid_input function, then loops.
+            # Good arg is passed through to view_entries function.
+            mock_ve.assert_called_with(bycat='minutes', target='2')
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_staff_list_good(self, mock_ve):
+        with unittest.mock.patch('builtins.input', side_effect=['l', '0']):
+            wlui.by_staff()
+            mock_ve.assert_called()
+
+    @unittest.mock.patch('wlui.invalid_input', return_value='True')
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_staff_list_bad_then_good(self, mock_ve, mock_ii):
+        with unittest.mock.patch('builtins.input', side_effect=['l', 'five', '0']):
+            wlui.by_staff()
+            mock_ii.assert_called_with('integer')
+            mock_ve.assert_called()
 
 
 if __name__ == '__main__':
