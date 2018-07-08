@@ -166,6 +166,7 @@ def edit_entry(entry):
 
 def by_staff():
     """Search by staff names."""
+    # Under test.
     if input('''
 Please choose:
 [L] A list of empltoyees.
@@ -199,6 +200,7 @@ Please choose:
 
 def by_date():
     """Search by date."""
+    # Under test.
     if input('''
 Please choose:
 [L] For a list of dates with tasks entered.
@@ -234,12 +236,12 @@ So, if you want to search New Year's Day 2018, type "01/01/2018-01/02/2018"
         while listloop:
             snackfruit = input("Please type a number to select a date. \n> ")
             # Check that number entered exists in list.
-            if int(snackfruit) >= 0 and int(snackfruit) < len(datelog):
-                view_entries(bycat='date', target=datelog[int(snackfruit)])
-                clear_screen()
-                return
-            else:
-                invalid_input('date string')
+            if CardCatalog().minute_check(snackfruit):
+                if int(snackfruit) >= 0 and int(snackfruit) < len(datelog):
+                    view_entries(bycat='date', target=datelog[int(snackfruit)])
+                    clear_screen()
+                    return
+            invalid_input('date selection')
 
 
 def by_minutes():
@@ -359,10 +361,11 @@ def main_menu():
             # .__doc__ will read docstrings of the menu functions.
             print(menu_buttons)
             print('-' * len(menu_buttons))
-        choice = input("\nAction: ").lower().strip()
+        choice = input("Action: ").lower()
 
         if choice in menu:
             menu[choice]()
+    return
 
 
 menu = OrderedDict([

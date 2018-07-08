@@ -204,11 +204,53 @@ class UserInterfaceTests(unittest.TestCase):
     @unittest.mock.patch('wlui.invalid_input', return_value='True')
     @unittest.mock.patch('wlui.view_entries', return_value='True')
     def test_by_staff_list_bad_then_good(self, mock_ve, mock_ii):
-        with unittest.mock.patch('builtins.input', side_effect=['l', 'five', '0']):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['l', 'five', '0']):
             wlui.by_staff()
             mock_ii.assert_called_with('integer')
             mock_ve.assert_called()
 
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_staff_input(self, mock_ve):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['n', 'John']):
+            wlui.by_staff()
+            mock_ve.assert_called_with(bycat='name', target='John')
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_date_list_good(self, mock_ve):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['l', '0']):
+            wlui.by_date()
+            mock_ve.assert_called()
+
+    @unittest.mock.patch('wlui.invalid_input', return_value='True')
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_date_list_bad_then_good(self, mock_ve, mock_ii):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['l', 'zero', '0']):
+            wlui.by_date()
+            mock_ii.assert_called_with('date selection')
+            mock_ve.assert_called()
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_date_input_good(self, mock_ve):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['r',
+                                              '03/03/3333-05/05/5555']):
+            wlui.by_date()
+            mock_ve.assert_called()
+
+    @unittest.mock.patch('wlui.invalid_input', return_value='True')
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_date_input_bad_then_good(self, mock_ve, mock_ii):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['r',
+                                              'fourth of july',
+                                              '03/03/3333-05/05/5555']):
+            wlui.by_date()
+            mock_ii.assert_called_with('date range string')
+            mock_ve.assert_called()
 
 if __name__ == '__main__':
     unittest.main()
