@@ -342,7 +342,7 @@ _____________________________
     elif search_by.lower() == 't':
         by_term()
     else:
-        pass
+        return
 
 
 def main_menu():
@@ -356,18 +356,41 @@ def main_menu():
         print('Welcome to the Library of Staff Productivity')
         print(quitter)
         print('-' * len(quitter))
-        for key, value in menu.items():
-            menu_buttons = '{}) {}'.format(key.upper(), value.__doc__)
-            # .__doc__ will read docstrings of the menu functions.
-            print(menu_buttons)
-            print('-' * len(menu_buttons))
-        choice = input("Action: ").lower()
+        # Get rid of ordered dict!
+        choice = input('''Please select an option.
+-----------------------------
+[a] Add new entry to work log.
+[v] View entries.
+[s] Search entries.
+_____________________________
+> ''').lower()
+        # End refac.
+        # for key, value in menu.items():
+        #    menu_buttons = '{}) {}'.format(key.upper(), value.__doc__)
+        #    # .__doc__ will read docstrings of the menu functions.
+        #    print(menu_buttons)
+        #    print('-' * len(menu_buttons))
+        # choice = input("Action: ").lower()
 
-        if choice in menu:
-            menu[choice]()
+        # if choice in menu:
+        #    menu[choice]()
+        if choice == 'a':
+            add_entry()
+        elif choice == 'v':
+            view_entries()
+        elif choice == 's':
+            search_entries()
     return
 
 
+def start_now():
+    in_play = 1
+    while in_play == 1:
+        main_menu()
+        in_play -= 1
+    print('Out of main menu.')
+
+    
 menu = OrderedDict([
     ('a', add_entry),
     ('v', view_entries),
@@ -375,4 +398,5 @@ menu = OrderedDict([
 ])
 
 if __name__ == '__main__':
-    main_menu()
+    start_now()
+    # main_menu()

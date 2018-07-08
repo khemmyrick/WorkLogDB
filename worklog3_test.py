@@ -252,5 +252,52 @@ class UserInterfaceTests(unittest.TestCase):
             mock_ii.assert_called_with('date range string')
             mock_ve.assert_called()
 
+    @unittest.mock.patch('wlui.by_staff', return_value='True')
+    def test_search_entries_staff(self, mock_staff):
+        with unittest.mock.patch('builtins.input', return_value='n'):
+            wlui.search_entries()
+            mock_staff.assert_called()
+
+    @unittest.mock.patch('wlui.by_date', return_value='True')
+    def test_search_entries_date(self, mock_date):
+        with unittest.mock.patch('builtins.input', return_value='d'):
+            wlui.search_entries()
+            mock_date.assert_called()
+
+    @unittest.mock.patch('wlui.by_minutes', return_value='True')
+    def test_search_entries_minutes(self, mock_min):
+        with unittest.mock.patch('builtins.input', return_value='m'):
+            wlui.search_entries()
+            mock_min.assert_called()
+
+    @unittest.mock.patch('wlui.by_term', return_value='True')
+    def test_search_entries_term(self, mock_term):
+        with unittest.mock.patch('builtins.input', return_value='t'):
+            wlui.search_entries()
+            mock_term.assert_called()
+
+    def test_search_entries_quit(self):
+        with unittest.mock.patch('builtins.input', return_value='q'):
+            self.assertIsNone(wlui.search_entries())
+
+    @unittest.mock.patch('wlui.add_entry', return_value='True')
+    def test_main_menu_add(self, mock_ae):
+        with unittest.mock.patch('builtins.input', side_effect=['a', 'q']):
+            wlui.main_menu()
+            mock_ae.assert_called()
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_main_menu_view(self, mock_v_ent):
+        with unittest.mock.patch('builtins.input', side_effect=['v', 'q']):
+            wlui.main_menu()
+            mock_v_ent.assert_called()
+
+    @unittest.mock.patch('wlui.search_entries', return_value='True')
+    def test_main_menu_search(self, mock_s_ent):
+        with unittest.mock.patch('builtins.input', side_effect=['s', 'q']):
+            wlui.main_menu()
+            mock_s_ent.assert_called()
+
+
 if __name__ == '__main__':
     unittest.main()

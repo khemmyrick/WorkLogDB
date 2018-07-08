@@ -15,21 +15,21 @@ class UserInterfaceTests(unittest.TestCase):
         with unittest.mock.patch('builtins.input', side_effect=['a', 'q']):
             wlui.main_menu()
             mock_ae.assert_called()
-            self.assertRaises('StopIteration', wlui.main_menu)
+            # self.assertRaises('StopIterationError', wlui.main_menu)
 
     @unittest.mock.patch('wlui.view_entries', return_value='True')
     def test_main_menu_view(self, mock_v_ent):
         with unittest.mock.patch('builtins.input', side_effect=['v', 'q']):
             wlui.main_menu()
             mock_v_ent.assert_called()
-            self.assertRaises('StopIteration', wlui.main_menu)
+            # self.assertRaises('StopIterationError', wlui.main_menu)
 
     @unittest.mock.patch('wlui.search_entries', return_value='True')
     def test_main_menu_search(self, mock_s_ent):
         with unittest.mock.patch('builtins.input', side_effect=['s', 'q']):
             wlui.main_menu()
             mock_s_ent.assert_called()
-            self.assertRaises('StopIteration', wlui.main_menu)
+            # self.assertRaises('StopIterationError', wlui.main_menu)
 
 if __name__ == '__main__':
     unittest.main()
