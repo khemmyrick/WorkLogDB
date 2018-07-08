@@ -62,14 +62,18 @@ class CardCatalog:
         else:
             self.ent_from_db = Entry.select().order_by(Entry.timestamp.desc())
 
-        for entry in self.ent_from_db:
-            self.new_dict = {'user_name': entry.user_name,
-                             'task_name': entry.task_name,
-                             'task_minutes': entry.task_minutes,
-                             'task_notes': entry.task_notes,
-                             'timestamp': entry.timestamp}
-            self.ent_browse.append(self.new_dict)
-        return self.ent_browse
+        if self.ent_from_db:
+            for entry in self.ent_from_db:
+                self.new_dict = {'user_name': entry.user_name,
+                                 'task_name': entry.task_name,
+                                 'task_minutes': entry.task_minutes,
+                                 'task_notes': entry.task_notes,
+                                 'timestamp': entry.timestamp}
+                self.ent_browse.append(self.new_dict)
+            return self.ent_browse
+        else:
+            print("Sorry. No entries found matching your query.")
+            return False
 
     def delete_entry(self, entry):
         """Delete an entry."""
@@ -108,6 +112,13 @@ class CardCatalog:
         set_list = set(self.datelog)
         self.datelog = list(set_list)
         return self.datelog
+
+    def d_range_check(self, tdoves):
+        # TEST ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if re.match(r'(\d{2}/\d{2}/\d{4}\-\d{2}/\d{2}/\d{4})', tdoves):
+            return True
+        else:
+            return False
 
     def date_check(self, phoenix):
         """Create a datetime object from a string. Or return False."""

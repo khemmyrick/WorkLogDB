@@ -1,8 +1,9 @@
 import datetime
 import unittest
-# from unittest.mock import patch, MagicMock
+import unittest.mock
 
 # from peewee import *
+import wlui
 from models import Entry
 from worklog3 import CardCatalog
 
@@ -158,6 +159,25 @@ class FunctionTests(unittest.TestCase):
                 Entry.task_name == 'Nameless',
                 Entry.task_minutes == 999999,
                 Entry.timestamp == datetime.datetime(2000, 1, 1, 1)))
+
+
+class UserInterfaceTests(unittest.TestCase):
+    def test_invalid_input(self):
+        with unittest.mock.patch('builtins.input', return_value='Y'):
+            self.assertIsNone(wlui.invalid_input('wanted'))
+
+    def test_press_enter(self):
+        with unittest.mock.patch('builtins.input', return_value='Y'):
+            self.assertIsNone(wlui.invalid_input('wanted'))
+
+    
+    # def test_by_term(self):
+    #    Test search task names/notes. 
+    #    with unittest.mock.patch('wlui.view_entries', return_value='Y'):
+    #        # Test termstr will be above context container.
+    #        # NEED PATTERN FOR MOCKING FUNCTION CALL TEST.
+    #        # ????.assert_called(???)
+
 
 if __name__ == '__main__':
     unittest.main()
