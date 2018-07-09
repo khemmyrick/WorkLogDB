@@ -50,7 +50,7 @@ def add_entry():
         if isinstance(add_task, str):
             break
         else:
-            input('Task name must be a string.')
+            invalid_input('task string somehow')
             continue
 
     minutes_adding = 1
@@ -72,9 +72,10 @@ def add_entry():
     print('Task: ' + add_task)
     print('Minutes: ' + add_minutes)
     print(CardCatalog().notes_out(add_notes))
-    if input('Save entry? [Y/n]\n> ') != 'n':
+    if input('Save entry? [Y/n]\n> ').lower() != 'n':
         CardCatalog().save_new(add_name, add_task, add_minutes, add_notes)
-        input('Hit enter key to continue.')
+        press_enter()
+        return
 
 
 def edit_entry(entry):
@@ -145,7 +146,7 @@ def edit_entry(entry):
         else:
             print('Notes: ' + entry['task_notes'])
 
-        if input('Save entry? [Y/n]\n> ') != 'n':
+        if input('Save entry? [Y/n]\n> ').lower() != 'n':
             if new_task != '':
                 updater.task_name = new_task
             if new_minutes != '':
@@ -166,15 +167,54 @@ def edit_entry(entry):
 
 def by_staff():
     """Search by staff names."""
-    # Under test.
-    if input('''
+    # Edit by_staff tests...
+    s_choice = input('''
 Please choose:
-[L] A list of empltoyees.
-[n] To type in a specific name.
-> ''').lower() == 'n':
+[L] A list of employees.
+[n] To type a first or last name.
+[p] To type in a partial name.
+> ''').lower()
+    if s_choice == 'p':
         namestr = input('Please type a full or partial employee name.')
         view_entries(bycat='name', target=namestr)
         return
+
+    elif s_choice == 'n':
+        roster = CardCatalog().generate_roster()
+        new_roster = []
+        name_loop = 1
+        while name_loop:
+            casual = input(
+                "Please type an employee's first or last name. \n> "
+            )
+            if CardCatalog().fol_check(casual):
+                break
+            else:
+                invalid_input('first or last name')
+                continue
+        for user in roster:
+            if casual in user:
+                new_roster.append(user)
+        r_num = 0
+        for user in new_roster:
+            print('{}: {}'.format(r_num, user))
+            print('-' * 50)
+            r_num += 1
+        list_loop = 1
+        while list_loop:
+            employee = input(
+                "Please type a number to select an employee. \n> "
+            )
+            if CardCatalog().minute_check(employee):
+                if int(employee) < len(new_roster) and int(employee) >= 0:
+                    view_entries(
+                        bycat='name',
+                        target=new_roster[int(employee)]
+                    )
+                    clear_screen()
+                    return
+            invalid_input('integer')
+
     else:
         roster = CardCatalog().generate_roster()
         r_num = 0

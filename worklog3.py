@@ -172,6 +172,13 @@ class CardCatalog:
         else:
             return True
 
+    def fol_check(self, name):
+        if re.match(r'\w+$', name):
+            return True
+        else:
+            return False
+
+
     def notes_out(self, notes):
         # Under Test.
         if notes == '':
@@ -193,6 +200,7 @@ class CardCatalog:
         except (DoesNotExist, StopIteration):
             # Under test.  Sort of.
             # These may not be the correct exceptions?
+            # Revisit this test!
             return False
         else:
             return output

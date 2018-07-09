@@ -41,6 +41,8 @@ class FunctionTests(unittest.TestCase):
                  False)
         self.assertFalse(sav)
 
+    # @unittest.mock.patch('worklog3.CardCatalog.save_edits',
+    #                     return_value='True')
     def test_save_edit_good(self):
         e_dict = {'timestamp': datetime.datetime(2018, 7, 2, 8),
                   'user_name': 'White Diamond',
@@ -141,24 +143,24 @@ class FunctionTests(unittest.TestCase):
                       'task_name': 'Unknown',
                       'task_minutes': 1200,
                       'task_notes': "mystery"}
-        self.assertEqual(CardCatalog().acquire_target(entry_dict), Entry.get(
+        spam = CardCatalog().acquire_target(entry_dict)
+        egg = Entry.get(
                 Entry.user_name == 'White Diamond',
                 Entry.task_name == 'Unknown',
                 Entry.task_minutes == 1200,
-                Entry.timestamp == datetime.datetime(2018, 7, 2, 8)))
+                Entry.timestamp == datetime.datetime(2018, 7, 2, 8),
+                Entry.task_notes == "mystery"
+        )
+        self.assertEqual(spam, egg)
 
-    @unittest.expectedFailure
+    # @unittest.expectedFailure
     def test_acquire_target_dne(self):
         entry_dict = {'timestamp': datetime.datetime(2000, 1, 1, 1),
                       'user_name': 'Black Gold',
                       'task_name': 'Nameless',
                       'task_minutes': 999999,
                       'task_notes': "idk"}
-        self.assertFalse(CardCatalog().acquire_target(entry_dict), Entry.get(
-                Entry.user_name == 'Black Gold',
-                Entry.task_name == 'Nameless',
-                Entry.task_minutes == 999999,
-                Entry.timestamp == datetime.datetime(2000, 1, 1, 1)))
+        self.assertFalse(CardCatalog().acquire_target(entry_dict))
 
 
 class UserInterfaceTests(unittest.TestCase):
@@ -213,9 +215,32 @@ class UserInterfaceTests(unittest.TestCase):
     @unittest.mock.patch('wlui.view_entries', return_value='True')
     def test_by_staff_input(self, mock_ve):
         with unittest.mock.patch('builtins.input',
-                                 side_effect=['n', 'John']):
+                                 side_effect=['p', 'John']):
             wlui.by_staff()
             mock_ve.assert_called_with(bycat='name', target='John')
+
+    @unittest.mock.patch('wlui.view_entries', return_value='True')
+    def test_by_staff_fol(self, mock_ve):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['n',
+                                              'Yellow',
+                                              0]):
+            yde = Entry.create(
+                timestamp=datetime.datetime(2018, 1, 1, 1),
+                user_name='Yellow Diamond',
+                task_name='Stomp RQ',
+                task_minutes=1,
+                task_notes="mystery"
+            )
+            wlui.by_staff()
+            mock_ve.assert_called_with(bycat='name', target='Yellow Diamond')
+            CardCatalog().delete_entry(
+                {'user_name': 'Yellow Diamond',
+                 'task_name': 'Stomp RQ',
+                 'task_minutes': 1,
+                 'task_notes': "mystery",
+                 'timestamp': datetime.datetime(2018, 1, 1, 1)}
+            )
 
     @unittest.mock.patch('wlui.view_entries', return_value='True')
     def test_by_date_list_good(self, mock_ve):
@@ -297,6 +322,188 @@ class UserInterfaceTests(unittest.TestCase):
         with unittest.mock.patch('builtins.input', side_effect=['s', 'q']):
             wlui.main_menu()
             mock_s_ent.assert_called()
+
+    @unittest.mock.patch('worklog3.CardCatalog.acquire_target',
+                         return_value=False)
+    def test_edit_entry_bad(self, mock_at):
+        with unittest.mock.patch('builtins.input', return_value=''):
+            e_dict = {
+                'user_name': 'Greg Universe',
+                'task_name': 'Charm Blue Diamond',
+                'task_minutes': 1,
+                'task_notes': 'plan vetoed by consensus vote',
+                'timestamp': datetime.datetime.now()
+            }
+            self.assertIsNone(wlui.edit_entry(e_dict))
+
+    def test_edit_entry_good(self):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['Spam',
+                                              '42',
+                                              '11/11/2011',
+                                              'n',
+                                              'y',
+                                              '']):
+            yde = Entry.create(
+                timestamp=datetime.datetime(2018, 1, 1, 1),
+                user_name='Yellow Diamond',
+                task_name='Stomp RQ',
+                task_minutes=1,
+                task_notes="mystery"
+            )
+            e_dict = {
+                'user_name': 'Yellow Diamond',
+                'task_name': 'Stomp RQ',
+                'task_minutes': 1,
+                'task_notes': "mystery",
+                'timestamp': datetime.datetime(2018, 1, 1, 1)
+            }
+            self.assertIsNone(wlui.edit_entry(e_dict))
+            CardCatalog().delete_entry(
+                {'user_name': 'Yellow Diamond',
+                 'task_name': 'Spam',
+                 'task_minutes': 42,
+                 'task_notes': "mystery",
+                 'timestamp': datetime.datetime(2011, 11, 11, 1)}
+            )
+
+    # @unittest.mock.patch('builtins.print', return_value=True)
+    # @unittest.mock.patch('worklog3.CardCatalog.save_edits',
+    #                     return_value=True)
+    # @unittest.mock.patch('worklog3.CardCatalog.acquire_target',
+    #                     return_value=True)
+    # def test_edit_entry_good(self, mock_at, mock_print):
+    #    with unittest.mock.patch('builtins.input', side_effect=['Spam',
+    #                                                            '42',
+    #                                                            '11/11/2011',
+    #                                                            'n',
+    #                                                            'y',
+    #                                                            '']):
+    #        with unittest.mock.patch('sys.stdin', return_value='notes'):
+    #            e_dict = {
+    #                'user_name': 'Greg Universe',
+    #                'task_name': 'Charm Blue Diamond',
+    #                'task_minutes': 1,
+    #                'task_notes': 'plan vetoed by consensus vote',
+    #                'timestamp': datetime.datetime.now()
+    #            }
+    #            wlui.edit_entry(e_dict)
+    #            mock_at.assert_called_with(e_dict)
+    #            mock_print.assert_any_call('')
+    #            # mock_std.assert_called()
+    #            # mock_s_edit.assert_called()
+
+    @unittest.mock.patch('wlui.edit_entry', return_value=True)
+    @unittest.mock.patch('worklog3.CardCatalog.load_entries',
+                         return_value=[
+            {'user_name': 'John Doe',
+             'task_name': 'Work Task',
+             'task_minutes': 60,
+             'task_notes': '',
+             'timestamp': datetime.datetime.now().date()},
+            {'user_name': 'Mayor Nana',
+             'task_name': 'protect Beach City',
+             'task_minutes': 42,
+             'task_notes': 'this is not a drill',
+             'timestamp': datetime.datetime.now().date()},
+            {'user_name': 'Ronaldo Frymann',
+             'task_name': 'defeat the cluster',
+             'task_minutes': 1,
+             'task_notes': 'not really',
+             'timestamp': datetime.datetime.now().date()}
+        ])
+    def test_view_entries_fwd_back_edit(self, mock_le, mock_ee):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['n',
+                                              'n',
+                                              'n',
+                                              '',
+                                              'p',
+                                              'p',
+                                              'p',
+                                              '',
+                                              'e']):
+            wlui.view_entries()
+            mock_le.assert_called()
+            mock_ee.assert_called_with(
+                {'user_name': 'John Doe',
+                 'task_name': 'Work Task',
+                 'task_minutes': 60,
+                 'task_notes': '',
+                 'timestamp': datetime.datetime.now().date()}
+            )
+
+    @unittest.mock.patch('worklog3.CardCatalog.delete_entry',
+                         return_value=True)
+    @unittest.mock.patch('worklog3.CardCatalog.load_entries',
+                         return_value=[
+            {'user_name': 'John Doe',
+             'task_name': 'Work Task',
+             'task_minutes': 60,
+             'task_notes': '',
+             'timestamp': datetime.datetime.now().date()},
+            {'user_name': 'Mayor Nana',
+             'task_name': 'protect Beach City',
+             'task_minutes': 42,
+             'task_notes': 'this is not a drill',
+             'timestamp': datetime.datetime.now().date()},
+            {'user_name': 'Ronaldo Frymann',
+             'task_name': 'defeat the cluster',
+             'task_minutes': 1,
+             'task_notes': 'not really',
+             'timestamp': datetime.datetime.now().date()}
+        ])
+    def test_view_entries_fwd_back_delete(self, mock_le, mock_de):
+        with unittest.mock.patch('builtins.input',
+                                 side_effect=['n',
+                                              'n',
+                                              'n',
+                                              '',
+                                              'p',
+                                              'p',
+                                              'p',
+                                              '',
+                                              'd',
+                                              'y']):
+            wlui.view_entries()
+            mock_le.assert_called()
+            mock_de.assert_called_with(
+                {'user_name': 'John Doe',
+                 'task_name': 'Work Task',
+                 'task_minutes': 60,
+                 'task_notes': '',
+                 'timestamp': datetime.datetime.now().date()}
+            )
+
+    @unittest.mock.patch('worklog3.CardCatalog.save_new',
+                         return_value=True)
+    def test_add_entry_good(self, mock_sn):
+        with unittest.mock.patch('builtins.input', side_effect=['Sadie Miller',
+                                                                'Working Dead',
+                                                                '18',
+                                                                'n',
+                                                                'y',
+                                                                '']):
+            wlui.add_entry()
+            mock_sn.assert_called_with('Sadie Miller', 'Working Dead', '18', '')
+
+    # @unittest.mock.patch('worklog3.CardCatalog.save_new',
+    #                     return_value=True)
+    # def test_add_entry_bad_then_good(self, mock_sn):
+    #    with unittest.mock.patch('builtins.input', side_effect=['Badname',
+    #                                                            '',
+    #                                                            'Pink Lars',
+    #                                                            3,
+    #                                                            ''
+    #                                                            'Space Captain',
+    #                                                            'ten',
+    #                                                            '',
+    #                                                            10,
+    #                                                            'n',
+    #                                                            'y',
+    #                                                            '']):
+    #        wlui.add_entry()
+    #        mock_sn.assert_called_with('Pink Lars', 'Space Captain', '10', '')
 
 
 if __name__ == '__main__':
