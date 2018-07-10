@@ -78,6 +78,7 @@ def edit_entry(entry):
             'Error. Entry not found. Press "enter" to return to main menu.'
         )
         return
+    clear_screen()
     print("{}'s entry, {}.".format(entry['user_name'],
                                    entry['task_name']))
 
@@ -165,80 +166,98 @@ def edit_entry(entry):
 
 def by_staff():
     """Search by staff names."""
-    # Edit by_staff tests...
+    clear_screen()
     s_choice = input('''
 Please choose:
 [L] A list of employees.
 [n] To type a first or last name.
 [p] To type in a partial name.
 > ''').lower()
+    clear_screen()
     if s_choice == 'p':
-        namestr = input('Please type a full or partial employee name.')
+        namestr = input(
+            'Please type a full or partial employee name.'
+        )
         view_entries(bycat='name', target=namestr)
         return
 
     elif s_choice == 'n':
         roster = CardCatalog().generate_roster()
-        new_roster = []
-        name_loop = 1
-        while name_loop:
-            casual = input(
-                "Please type an employee's first or last name. \n> "
-            )
-            if CardCatalog().fol_check(casual):
-                break
-            else:
-                invalid_input('first or last name')
-                continue
-        for user in roster:
-            if casual in user:
-                new_roster.append(user)
-        r_num = 0
-        for user in new_roster:
-            print('{}: {}'.format(r_num, user))
-            print('-' * 50)
-            r_num += 1
-        list_loop = 1
-        while list_loop:
-            employee = input(
-                "Please type a number to select an employee. \n> "
-            )
-            if CardCatalog().minute_check(employee):
-                if int(employee) < len(new_roster) and int(employee) >= 0:
-                    view_entries(
-                        bycat='name',
-                        target=new_roster[int(employee)]
+        if roster:
+            new_roster = []
+            name_loop = 1
+            while name_loop:
+                casual = input(
+                    "Please type an employee's first or last name. \n> "
+                )
+                if CardCatalog().fol_check(casual):
+                    break
+                else:
+                    invalid_input('first or last name')
+                    continue
+            for user in roster:
+                if casual in user:
+                    new_roster.append(user)
+            r_num = 0
+            if new_roster:
+                for user in new_roster:
+                    print('{}: {}'.format(r_num, user))
+                    print('-' * 50)
+                    r_num += 1
+                list_loop = 1
+                while list_loop:
+                    employee = input(
+                        "Please type a number to select an employee. \n> "
                     )
-                    clear_screen()
-                    return
-            invalid_input('integer')
+                    if CardCatalog().minute_check(employee):
+                        if int(
+                            employee
+                        ) < len(
+                            new_roster
+                        ) and int(
+                            employee
+                        ) >= 0:
+                            view_entries(
+                                bycat='name',
+                                target=new_roster[int(employee)]
+                            )
+                            clear_screen()
+                            return
+                    invalid_input('integer')
+        print('No entries found.')
+        press_enter()
+        return
 
     else:
         roster = CardCatalog().generate_roster()
-        r_num = 0
-        for user in roster:
-            print('{}: {}'.format(r_num, user))
-            print('-' * 50)
-            r_num += 1
-        list_loop = 1
-        while list_loop:
-            employee = input(
-                "Please type a number to select an employee. \n> "
-            )
-            if CardCatalog().minute_check(employee):
-                if int(employee) < len(roster) and int(employee) >= 0:
-                    view_entries(
-                        bycat='name',
-                        target=roster[int(employee)]
-                    )
-                    clear_screen()
-                    return
-            invalid_input('integer')
+        if roster:
+            r_num = 0
+            for user in roster:
+                print('{}: {}'.format(r_num, user))
+                print('-' * 50)
+                r_num += 1
+            list_loop = 1
+            while list_loop:
+                employee = input(
+                    "Please type a number to select an employee. \n> "
+                )
+                if CardCatalog().minute_check(employee):
+                    if int(employee) < len(roster) and int(employee) >= 0:
+                        view_entries(
+                            bycat='name',
+                            target=roster[int(employee)]
+                        )
+                        clear_screen()
+                        return
+                invalid_input('integer')
+        print('No entries found.')
+        press_enter()
+        return
 
 
 def by_date():
     """Search by date."""
-    # Under test.
+    clear_screen()
     if input('''
 Please choose:
 [L] For a list of dates with tasks entered.
@@ -262,28 +281,41 @@ So, if you want to search New Year's Day 2018, type "01/01/2018-01/02/2018"
             else:
                 invalid_input('date range string')
     else:
+        clear_screen()
         datelog = CardCatalog().generate_datelog()
-        d_num = 0
-        for fenix in datelog:
-            print('{}: {}'.format(d_num,
-                                  fenix.strftime("%A %B %d, %Y")))
-            print('-' * 50)
-            d_num += 1
-        listloop = 1
-        while listloop:
-            snackfruit = input("Please type a number to select a date. \n> ")
-            # Check that number entered exists in list.
-            if CardCatalog().minute_check(snackfruit):
-                if int(snackfruit) >= 0 and int(snackfruit) < len(datelog):
-                    view_entries(bycat='date', target=datelog[int(snackfruit)])
-                    clear_screen()
-                    return
-            invalid_input('date selection')
+        if datelog:
+            d_num = 0
+            for fenix in datelog:
+                print('{}: {}'.format(d_num,
+                                      fenix.strftime("%A %B %d, %Y")))
+                print('-' * 50)
+                d_num += 1
+            listloop = 1
+            while listloop:
+                snackfruit = input(
+                    "Please type a number to select a date. \n> "
+                )
+                if CardCatalog().minute_check(snackfruit):
+                    if int(
+                        snackfruit
+                    ) >= 0 and int(
+                        snackfruit
+                    ) < len(
+                        datelog
+                    ):
+                        view_entries(bycat='date',
+                                     target=datelog[int(snackfruit)])
+                        clear_screen()
+                        return
+                invalid_input('date selection')
+        print('No entries found.')
+        press_enter()
+        return
 
 
 def by_minutes():
     """Search by minutes spent on task."""
-    # Under test.
+    clear_screen()
     minloop = 1
     while minloop:
         minnum = input('Please type an integer of minutes.')
@@ -298,6 +330,7 @@ def by_minutes():
 def by_term():
     """Search by term."""
     # Under test.
+    clear_screen()
     termstr = input('Please enter search term.')
     view_entries(bycat='term', target=termstr)
     return
@@ -355,12 +388,14 @@ def view_entries(bycat=None, target=None, datelast=None):
                 else:
                     input("That's all we could find. (Enter to continue.)")
     else:
+        print('No entries found.')
         press_enter()
         return
 
 
 def search_entries():
     """Search existing entries."""
+    clear_screen()
     search_by = input('''
 How would you like to search?
 -----------------------------

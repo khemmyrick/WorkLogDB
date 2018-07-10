@@ -381,7 +381,7 @@ class UserInterfaceTests(unittest.TestCase):
                                               'n',
                                               'y',
                                               '']):
-            Entry.create(  # i assigned this to yde
+            Entry.create(
                 timestamp=datetime.datetime(2018, 1, 1, 1),
                 user_name='Yellow Diamond',
                 task_name='Stomp RQ',
