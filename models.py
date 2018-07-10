@@ -15,3 +15,8 @@ class Entry(Model):
 
     class Meta:
         database = db
+
+def initialize():
+    """Create database and table if they don't exist."""
+    db.connect()
+    db.create_tables([Entry], safe=True)

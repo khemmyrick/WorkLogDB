@@ -1,20 +1,12 @@
 """Work Log with Database Employee Terminal"""
 
-from collections import OrderedDict
 import datetime
 import os
 import sys
 
+import models
 from peewee import *
 from worklog3 import CardCatalog
-
-# db = SqliteDatabase('log.db')
-
-
-def initialize():
-    """Create database and table if they don't exist."""
-    db.connect()
-    db.create_tables([Entry], safe=True)
 
 
 def clear_screen():
@@ -31,6 +23,7 @@ def invalid_input(wanted):
 def press_enter():
     input("Press enter to return.")
     return
+
 
 def add_entry():
     """Add new entry to work log."""
@@ -95,12 +88,16 @@ def edit_entry(entry):
 
         new_minutes = ''
         nm_check = 1
-        new_minutes = input('Edit integer of minutes, or enter to skip.\n> ')
-        if new_minutes:
-            if CardCatalog().minute_check(new_minutes):
-                break
-            else:
-                continue
+        while nm_check:
+            new_minutes = input(
+                'Edit integer of minutes, or enter to skip.\n> '
+            )
+            if new_minutes:
+                if CardCatalog().minute_check(new_minutes):
+                    break
+                else:
+                    invalid_input('integer')
+                    continue
 
         new_date = ''
         nd_check = 1
@@ -109,19 +106,20 @@ def edit_entry(entry):
                 '%m/%d/%Y'
             )
         )
-        new_date = input(
-            "Type new date in MM/DD/YYYY format. Or enter to skip."
-        )
-        if new_date != '':
-            try:
-                new_dto = datetime.datetime.strptime(
-                    new_date,
-                    "%m/%d/%Y"
-                )
-                break
-            except ValueError:
-                invalid_input('date string')
-                continue
+        while nd_check:
+            new_date = input(
+                "Type new date in MM/DD/YYYY format. Or enter to skip."
+            )
+            if new_date != '':
+                try:
+                    new_dto = datetime.datetime.strptime(
+                        new_date,
+                        "%m/%d/%Y"
+                    )
+                    break
+                except ValueError:
+                    invalid_input('date string')
+                    continue
 
         new_notes = ''
         if input('Any notes? [y/N]').upper().strip() == "Y":
@@ -249,7 +247,6 @@ Please choose:
         timeloop = 1
         while timeloop:
             clear_screen()
-            # My project reviewer reported 'an error searching with "03/03/3333-05/05/5555". The same thing happens if I try to pick a date from the list with a bad input.' By the time I tried to recrete said error, I'd already implemented the d_range_check function to catch improper date range inputs.  So, I think I fixed it?
             target_range = input('''
 Please enter date range in following format:
 "MM/DD/YYYY-MM/DD/YYYY"
@@ -333,7 +330,7 @@ def view_entries(bycat=None, target=None, datelast=None):
             print('e) Edit entry')
             print('d) Delete entry')
             print('q) Return to menu')
-    
+
             next_action = input('Action: \n[N/p/e/d/q]: ').lower().strip()
             if next_action == 'q':
                 break
@@ -360,6 +357,7 @@ def view_entries(bycat=None, target=None, datelast=None):
     else:
         press_enter()
         return
+
 
 def search_entries():
     """Search existing entries."""
@@ -391,12 +389,10 @@ def main_menu():
 
     while choice.lower() != 'q':
         clear_screen()
-        # staff_list, date_list = current_lists()
         quitter = 'Enter "q" to quit.'
         print('Welcome to the Library of Staff Productivity')
         print(quitter)
         print('-' * len(quitter))
-        # Get rid of ordered dict!
         choice = input('''Please select an option.
 -----------------------------
 [a] Add new entry to work log.
@@ -404,16 +400,6 @@ def main_menu():
 [s] Search entries.
 _____________________________
 > ''').lower()
-        # End refac.
-        # for key, value in menu.items():
-        #    menu_buttons = '{}) {}'.format(key.upper(), value.__doc__)
-        #    # .__doc__ will read docstrings of the menu functions.
-        #    print(menu_buttons)
-        #    print('-' * len(menu_buttons))
-        # choice = input("Action: ").lower()
-
-        # if choice in menu:
-        #    menu[choice]()
         if choice == 'a':
             add_entry()
         elif choice == 'v':
@@ -423,20 +409,6 @@ _____________________________
     return
 
 
-def start_now():
-    in_play = 1
-    while in_play == 1:
-        main_menu()
-        in_play -= 1
-    print('Out of main menu.')
-
-    
-menu = OrderedDict([
-    ('a', add_entry),
-    ('v', view_entries),
-    ('s', search_entries)
-])
-
 if __name__ == '__main__':
-    start_now()
-    # main_menu()
+    models.initialize()
+    main_menu()
